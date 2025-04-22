@@ -1,6 +1,12 @@
 package edu.austral.ingsis.clifford;
 
-import edu.austral.ingsis.clifford.command.*;
+import edu.austral.ingsis.clifford.command.Cd;
+import edu.austral.ingsis.clifford.command.Command;
+import edu.austral.ingsis.clifford.command.Ls;
+import edu.austral.ingsis.clifford.command.Mkdir;
+import edu.austral.ingsis.clifford.command.Pwd;
+import edu.austral.ingsis.clifford.command.Rm;
+import edu.austral.ingsis.clifford.command.Touch;
 import edu.austral.ingsis.clifford.element.Directory;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,21 +52,16 @@ public class CLI {
     }
 
     if (commandName.equals("cd")) {
-      Object result = command.execute(currentDirectory, args);
-      if (result instanceof Directory) {
-        currentDirectory = (Directory) result;
-        return ((Cd) command).getResult();
-      }
-      return (String) result;
+      String result = command.execute(currentDirectory, args);
+      currentDirectory = ((Cd) command).getNewDirectory();
+      return result;
     } else if (commandName.equals("ls")) {
       if (args.startsWith("--ord=")) {
-        return (String) command.execute(currentDirectory, args.substring(6));
+        return command.execute(currentDirectory, args.substring(6));
       }
-      return (String) command.execute(currentDirectory, args);
-    } else if (commandName.equals("rm")) {
-      return (String) command.execute(currentDirectory, args);
+      return command.execute(currentDirectory, args);
     } else {
-      return (String) command.execute(currentDirectory, args);
+      return command.execute(currentDirectory, args);
     }
   }
 }

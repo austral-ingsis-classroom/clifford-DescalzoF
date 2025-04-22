@@ -6,14 +6,15 @@ import edu.austral.ingsis.clifford.element.Type;
 
 public class Cd implements Command {
   private String result;
+  private Directory newDirectory;
 
   @Override
-  public Object execute(Element element, String flag) {
+  public String execute(Element element, String flag) {
     Directory currentDir = (Directory) element;
-
+    newDirectory = currentDir;
     if (flag.isEmpty() || flag.equals(".")) {
       result = "moved to directory '.'";
-      return currentDir;
+      return result;
     }
 
     if (flag.equals("..")) {
@@ -21,30 +22,32 @@ public class Cd implements Command {
       if (parent == null) {
         parent = currentDir;
       }
+      newDirectory = parent;
       result = "moved to directory '/'";
-      return parent;
+      return result;
     }
 
     if (flag.startsWith("/")) {
-      // Navigate from root
       Directory root = currentDir;
       while (root.getParent() != null) {
         root = root.getParent();
       }
 
       if (flag.equals("/")) {
+        newDirectory = root;
         result = "moved to directory '/'";
-        return root;
+        return result;
       }
 
-      return navigatePath(root, flag.substring(1));
+      navigatePath(root, flag.substring(1));
+      return result;
     } else {
-      // Relative path
-      return navigatePath(currentDir, flag);
+      navigatePath(currentDir, flag);
+      return result;
     }
   }
 
-  private Directory navigatePath(Directory startDir, String path) {
+  private void navigatePath(Directory startDir, String path) {
     Directory current = startDir;
     String[] parts = path.split("/");
 
@@ -63,22 +66,24 @@ public class Cd implements Command {
       Element nextElement = current.getElement(part);
       if (nextElement == null) {
         result = "'" + part + "' directory does not exist";
-        return current;
+        newDirectory = current;
+        return;
       }
 
       if (nextElement.getType() != Type.DIRECTORY) {
         result = "'" + part + "' is not a directory";
-        return current;
+        newDirectory = current;
+        return;
       }
 
       current = (Directory) nextElement;
     }
 
     result = "moved to directory '" + current.getName() + "'";
-    return current;
+    newDirectory = current;
   }
 
-  public String getResult() {
-    return result;
+  public Directory getNewDirectory() {
+    return newDirectory;
   }
 }
