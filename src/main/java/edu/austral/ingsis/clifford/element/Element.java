@@ -1,9 +1,9 @@
 package edu.austral.ingsis.clifford.element;
 
-public interface Element {
-  public String getName();
+public sealed interface Element permits Directory, File {
+  String getName();
 
-  public Type getType();
+  Type getType();
 
-  public String getLocation();
+  String getLocation();
 }

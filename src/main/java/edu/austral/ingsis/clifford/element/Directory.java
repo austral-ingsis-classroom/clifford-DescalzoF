@@ -1,26 +1,29 @@
 package edu.austral.ingsis.clifford.element;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class Directory implements Element {
-  private final String directoryName;
-  private Directory parent;
-  private Map<String, Element> children;
-  private List<String> order;
+public record Directory(String name, Directory parent, Map<String, Element> children)
+    implements Element {
 
-  public Directory(String directoryName, Directory location) {
-    this.directoryName = directoryName;
-    this.parent = location;
-    this.children = new LinkedHashMap<>();
-    this.order = new ArrayList<>();
+  public Directory {
+    children = Collections.unmodifiableMap(new LinkedHashMap<>(children));
+  }
+
+  public Directory(String name, Directory parent) {
+    this(name, parent, new LinkedHashMap<>());
+  }
+
+  public Directory() {
+    this("/", null, new LinkedHashMap<>());
   }
 
   @Override
   public String getName() {
-    return directoryName;
+    return name;
   }
 
   @Override
@@ -33,35 +36,29 @@ public class Directory implements Element {
     if (parent == null) {
       return "/";
     }
-    if (parent.getParent() == null) {
-      return "/" + directoryName;
+    if (parent.parent == null) {
+      return "/" + name;
     }
-    return parent.getLocation() + "/" + directoryName;
+    return parent.getLocation() + "/" + name;
   }
 
-  public Element getElement(String name) {
-    return children.get(name);
-  }
-
-  public void removeElement(String name) {
-    children.remove(name);
-    order.remove(name);
-  }
-
-  public void addElement(Element element) {
-    children.put(element.getName(), element);
-    order.add(element.getName());
-  }
-
-  public Directory getParent() {
-    return parent;
+  public Element getElement(String elementName) {
+    return children.get(elementName);
   }
 
   public List<Element> getElements() {
-    List<Element> elements = new ArrayList<>();
-    for (String name : order) {
-      elements.add(children.get(name));
-    }
-    return elements;
+    return new ArrayList<>(children.values());
+  }
+
+  public Directory withElement(Element element) {
+    LinkedHashMap<String, Element> newChildren = new LinkedHashMap<>(children);
+    newChildren.put(element.getName(), element);
+    return new Directory(name, parent, newChildren);
+  }
+
+  public Directory withoutElement(String elementName) {
+    LinkedHashMap<String, Element> newChildren = new LinkedHashMap<>(children);
+    newChildren.remove(elementName);
+    return new Directory(name, parent, newChildren);
   }
 }

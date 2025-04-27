@@ -1,36 +1,43 @@
 package edu.austral.ingsis.clifford.command;
 
+import edu.austral.ingsis.clifford.FileSystem;
 import edu.austral.ingsis.clifford.element.Directory;
 import edu.austral.ingsis.clifford.element.Element;
 import edu.austral.ingsis.clifford.element.Type;
 
-public class Rm implements Command {
+public final class Rm implements Command<Directory> {
+  private final String targetName;
+  private final boolean recursive;
+
+  public Rm(String targetName) {
+    this(targetName, false);
+  }
+
+  public Rm(String targetName, boolean recursive) {
+    this.targetName = targetName;
+    this.recursive = recursive;
+  }
+
   @Override
-  public String execute(Element element, String flag) {
-    Directory currentDirectory = (Directory) element;
-    String[] parts = flag.split(" ", 2);
-
-    boolean recursive = false;
-    String targetName;
-
-    if (parts[0].equals("--recursive")) {
-      recursive = true;
-      targetName = parts.length > 1 ? parts[1] : "";
-    } else {
-      targetName = parts[0];
+  public CommandResult<Directory> execute(Directory currentDirectory) {
+    if (targetName.isEmpty()) {
+      return CommandResult.withoutChange(currentDirectory, "No element name provided");
     }
 
     Element target = currentDirectory.getElement(targetName);
 
     if (target == null) {
-      return "'" + targetName + "' does not exist";
+      return CommandResult.withoutChange(currentDirectory, "'" + targetName + "' does not exist");
     }
 
     if (target.getType() == Type.DIRECTORY && !recursive) {
-      return "cannot remove '" + targetName + "', is a directory";
+      return CommandResult.withoutChange(
+          currentDirectory, "cannot remove '" + targetName + "', is a directory");
     }
 
-    currentDirectory.removeElement(targetName);
-    return "'" + targetName + "' removed";
+    Directory updatedCurrentDir = currentDirectory.withoutElement(targetName);
+    Directory newRoot = FileSystem.rebuildBranch(currentDirectory, updatedCurrentDir);
+
+    return new CommandResult<>(newRoot, updatedCurrentDir, "'" + targetName + "' removed");
   }
 }

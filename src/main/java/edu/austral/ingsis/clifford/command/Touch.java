@@ -1,24 +1,36 @@
 package edu.austral.ingsis.clifford.command;
 
+import edu.austral.ingsis.clifford.FileSystem;
 import edu.austral.ingsis.clifford.element.Directory;
-import edu.austral.ingsis.clifford.element.Element;
 import edu.austral.ingsis.clifford.element.File;
 
-public class Touch implements Command {
+public final class Touch implements Command<Directory> {
+  private final String fileName;
+
+  public Touch(String fileName) {
+    this.fileName = fileName;
+  }
+
   @Override
-  public String execute(Element element, String flag) {
-    if (flag.isEmpty()) {
-      return "No file name provided";
+  public CommandResult<Directory> execute(Directory currentDirectory) {
+    if (fileName.isEmpty()) {
+      return CommandResult.withoutChange(currentDirectory, "No file name provided");
     }
 
-    if (flag.contains("/") || flag.contains(" ")) {
-      return "Invalid file name";
+    if (fileName.contains("/") || fileName.contains(" ")) {
+      return CommandResult.withoutChange(currentDirectory, "Invalid file name");
     }
 
-    Directory currentDirectory = (Directory) element;
-    File newFile = new File(flag, currentDirectory, "");
-    currentDirectory.addElement(newFile);
+    if (currentDirectory.getElement(fileName) != null) {
+      return CommandResult.withoutChange(currentDirectory, "'" + fileName + "' already exists");
+    }
 
-    return "'" + flag + "' file created";
+    File newFile = new File(fileName, currentDirectory, "");
+
+    Directory updatedCurrentDir = currentDirectory.withElement(newFile);
+
+    Directory newRoot = FileSystem.rebuildBranch(currentDirectory, updatedCurrentDir);
+
+    return new CommandResult<>(newRoot, updatedCurrentDir, "'" + fileName + "' file created");
   }
 }

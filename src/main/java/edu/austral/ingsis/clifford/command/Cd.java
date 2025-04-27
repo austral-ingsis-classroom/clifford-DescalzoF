@@ -4,86 +4,85 @@ import edu.austral.ingsis.clifford.element.Directory;
 import edu.austral.ingsis.clifford.element.Element;
 import edu.austral.ingsis.clifford.element.Type;
 
-public class Cd implements Command {
-  private String result;
-  private Directory newDirectory;
+public final class Cd implements Command<Directory> {
+  private final String path;
 
-  @Override
-  public String execute(Element element, String flag) {
-    Directory currentDir = (Directory) element;
-    newDirectory = currentDir;
-    if (flag.isEmpty() || flag.equals(".")) {
-      result = "moved to directory '.'";
-      return result;
-    }
-
-    if (flag.equals("..")) {
-      Directory parent = currentDir.getParent();
-      if (parent == null) {
-        parent = currentDir;
-      }
-      newDirectory = parent;
-      result = "moved to directory '/'";
-      return result;
-    }
-
-    if (flag.startsWith("/")) {
-      Directory root = currentDir;
-      while (root.getParent() != null) {
-        root = root.getParent();
-      }
-
-      if (flag.equals("/")) {
-        newDirectory = root;
-        result = "moved to directory '/'";
-        return result;
-      }
-
-      navigatePath(root, flag.substring(1));
-      return result;
-    } else {
-      navigatePath(currentDir, flag);
-      return result;
-    }
+  public Cd(String path) {
+    this.path = path;
   }
 
-  private void navigatePath(Directory startDir, String path) {
-    Directory current = startDir;
-    String[] parts = path.split("/");
+  @Override
+  public CommandResult<Directory> execute(Directory currentDirectory) {
+    if (path.isEmpty() || path.equals(".")) {
+      return CommandResult.withoutChange(currentDirectory, "moved to directory '.'");
+    }
 
-    for (String part : parts) {
-      if (part.equals(".")) {
+    if (path.equals("..")) {
+      Directory parent = currentDirectory.parent();
+      if (parent == null) {
+        return CommandResult.withoutChange(currentDirectory, "moved to directory '/'");
+      }
+      return CommandResult.withoutChange(parent, "moved to directory '" + parent.getName() + "'");
+    }
+
+    if (path.startsWith("/")) {
+      Directory root = getRootDirectory(currentDirectory);
+
+      if (path.equals("/")) {
+        return CommandResult.withoutChange(root, "moved to directory '/'");
+      }
+
+      String relativePath = path.substring(1);
+      return navigatePath(root, relativePath);
+    }
+
+    return navigatePath(currentDirectory, path);
+  }
+
+  private Directory getRootDirectory(Directory dir) {
+    Directory currentDir = dir;
+    while (currentDir.parent() != null) {
+      currentDir = currentDir.parent();
+    }
+    return currentDir;
+  }
+
+  private CommandResult<Directory> navigatePath(Directory startDir, String path) {
+    String[] pathComponents = path.split("/");
+    Directory currentDir = startDir;
+
+    for (String component : pathComponents) {
+      if (component.isEmpty() || component.equals(".")) {
         continue;
       }
 
-      if (part.equals("..")) {
-        if (current.getParent() != null) {
-          current = current.getParent();
+      if (component.equals("..")) {
+        Directory parent = currentDir.parent();
+        if (parent == null) {
+          continue;
         }
+        currentDir = parent;
         continue;
       }
 
-      Element nextElement = current.getElement(part);
+      Element nextElement = currentDir.getElement(component);
+
       if (nextElement == null) {
-        result = "'" + part + "' directory does not exist";
-        newDirectory = current;
-        return;
+        return CommandResult.withoutChange(
+            startDir, "'" + component + "' directory does not exist");
       }
 
       if (nextElement.getType() != Type.DIRECTORY) {
-        result = "'" + part + "' is not a directory";
-        newDirectory = current;
-        return;
+        return CommandResult.withoutChange(startDir, "'" + component + "' is not a directory");
       }
 
-      current = (Directory) nextElement;
+      currentDir = (Directory) nextElement;
     }
 
-    result = "moved to directory '" + current.getName() + "'";
-    newDirectory = current;
-  }
-
-  public Directory getNewDirectory() {
-    return newDirectory;
+    return CommandResult.withoutChange(
+        currentDir,
+        "moved to directory '"
+            + (currentDir.getName().equals("/") ? "/" : currentDir.getName())
+            + "'");
   }
 }

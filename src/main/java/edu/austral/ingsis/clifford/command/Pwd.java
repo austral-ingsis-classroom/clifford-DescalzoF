@@ -1,19 +1,14 @@
 package edu.austral.ingsis.clifford.command;
 
 import edu.austral.ingsis.clifford.element.Directory;
-import edu.austral.ingsis.clifford.element.Element;
 
-public class Pwd implements Command {
+public final class Pwd implements Command<Directory> {
+  public Pwd() {}
+
   @Override
-  public String execute(Element element, String flag) {
-    Directory directory = (Directory) element;
+  public CommandResult<Directory> execute(Directory directory) {
     String location = directory.getLocation();
 
-    // Root directory needs special handling
-    if (directory.getParent() == null) {
-      return "/";
-    }
-
-    return location;
+    return CommandResult.withoutChange(directory, location);
   }
 }
